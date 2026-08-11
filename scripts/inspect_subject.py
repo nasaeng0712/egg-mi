@@ -28,7 +28,7 @@ HIGH_FREQ = 30.0
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data" / "raw"
 FIGURE_DIR = PROJECT_ROOT / "results" / "figures"
 SECTION_WIDTH = 60
@@ -113,7 +113,7 @@ def load_subject_data(
 
         # 중요: 원본 raw가 아니라 실제 필터링된 객체를 추가한다.
         raw_list.append(raw_filtered)
-        print(f"  ✓ Run {index}/{len(file_paths)} 로딩 및 필터 완료")
+        print(f"  [OK] Run {index}/{len(file_paths)} 로딩 및 필터 완료")
 
     if not raw_list:
         raise RuntimeError("로드된 EEG run이 없습니다.")
@@ -121,7 +121,7 @@ def load_subject_data(
     # run 4, 8, 12를 시간 방향으로 이어 붙인다.
     # 머신러닝 평가 단계에서는 run 정보를 별도로 보존하는 것이 좋다.
     combined_raw = mne.concatenate_raws(raw_list)
-    print(f"  ✓ Band-pass Filter ({LOW_FREQ:g}~{HIGH_FREQ:g} Hz)")
+    print(f"  [OK] Band-pass Filter ({LOW_FREQ:g}~{HIGH_FREQ:g} Hz)")
     return combined_raw
 
 
@@ -352,8 +352,9 @@ def prepare_csp_dataset(
     # (Epoch 수, 채널 수, 시간)
     X = epochs.get_data()
 
-    # 0 = 왼손, 1 = 오른손
-    y = epochs.events[:, 2] - 2
+    # 실제 annotation code 값과 무관하게 0=왼손, 1=오른손으로 변환한다.
+    left_code = epochs.event_id["left_hand"]
+    y = (epochs.events[:, 2] != left_code).astype(np.int64)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -375,26 +376,6 @@ def prepare_csp_dataset(
         X_test,
         y_train,
         y_test,
-    )
-
-    """
-    머신러닝에 사용할 Train/Test 데이터를 준비한다.
-    """
-
-    raw = load_subject_data(
-        subject=subject,
-        runs=runs,
-    )
-
-    epochs = create_motor_imagery_epochs(raw)
-
-    features, labels = extract_baseline_features(
-        epochs,
-    )
-
-    return split_dataset(
-        features,
-        labels,
     )
 
 def print_pipeline_summary(
