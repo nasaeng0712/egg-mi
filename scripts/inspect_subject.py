@@ -307,6 +307,77 @@ def prepare_baseline_dataset(
     runs: list[int] = RUNS,
 ):
     """
+    Baseline SVM에서 사용할 Train/Test 데이터를 준비한다.
+    """
+
+    raw = load_subject_data(
+        subject=subject,
+        runs=runs,
+    )
+
+    epochs = create_motor_imagery_epochs(raw)
+
+    features, labels = extract_baseline_features(
+        epochs,
+    )
+
+    return split_dataset(
+        features,
+        labels,
+    )
+
+
+def prepare_csp_dataset(
+    subject: int = SUBJECT,
+    runs: list[int] = RUNS,
+):
+    """
+    CSP 학습을 위한 Epoch 데이터를 준비한다.
+
+    Returns
+    -------
+    X_train
+    X_test
+    y_train
+    y_test
+    """
+
+    raw = load_subject_data(
+        subject=subject,
+        runs=runs,
+    )
+
+    epochs = create_motor_imagery_epochs(raw)
+
+    # (Epoch 수, 채널 수, 시간)
+    X = epochs.get_data()
+
+    # 0 = 왼손, 1 = 오른손
+    y = epochs.events[:, 2] - 2
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y,
+    )
+
+    print_section("CSP Dataset")
+
+    print_item("X_train", X_train.shape)
+    print_item("X_test", X_test.shape)
+    print_item("y_train", y_train.shape)
+    print_item("y_test", y_test.shape)
+
+    return (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+    )
+
+    """
     머신러닝에 사용할 Train/Test 데이터를 준비한다.
     """
 
