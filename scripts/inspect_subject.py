@@ -266,6 +266,42 @@ def split_dataset(
     print_item("y_train", y_train.shape)
     print_item("y_test", y_test.shape)
     return x_train, x_test, y_train, y_test
+def prepare_baseline_features(
+    subject: int = SUBJECT,
+    runs: list[int] = RUNS,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Cross Validation에 사용할
+    분할 전 전체 Feature와 Label을 반환한다.
+
+    Returns
+    -------
+    features:
+        전체 Epoch에서 추출한 baseline Feature.
+
+    labels:
+        각 Epoch의 정답 Label.
+        0 = 왼손
+        1 = 오른손
+    """
+
+    # EEG 데이터를 로드하고 8~30Hz 필터를 적용한다.
+    raw = load_subject_data(
+        subject=subject,
+        runs=runs,
+    )
+
+    # 연속 EEG를 운동상상 Epoch로 변환한다.
+    epochs = create_motor_imagery_epochs(
+        raw,
+    )
+
+    # 전체 Epoch에서 Feature와 Label을 추출한다.
+    features, labels = extract_baseline_features(
+        epochs,
+    )
+
+    return features, labels
 def prepare_baseline_dataset(
     subject: int = SUBJECT,
     runs: list[int] = RUNS,
